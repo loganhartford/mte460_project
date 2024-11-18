@@ -46,6 +46,7 @@ unsigned int red;
 unsigned int green;
 unsigned int blue;
 int gr;
+int rb;
 
 bool motorOn = false;
 bool blockPresent = false;
@@ -188,7 +189,7 @@ void loop() {
       setRGBLED("red");
       servo.write(RED_POS);
     }
-    else if ((blue < green) && (blue < red))
+    else if ((blue < green) && (blue < red) && (rb > 300))
     {
       setRGBLED("blue");
       servo.write(BLUE_POS);
@@ -247,10 +248,14 @@ void colorServoTest()
       setRGBLED("red");
       servo.write(RED_POS);
     }
-    else if ((blue < green) && (blue < red))
+    else if ((blue < green) && (blue < red) && (rb > 300))
     {
       setRGBLED("blue");
       servo.write(BLUE_POS);
+    }
+    else 
+    {
+      setRGBLED("off");
     }
   }
 }
@@ -326,6 +331,7 @@ void getColors(float alpha) {
   green = (int)filteredGreen;
 
   gr = abs(green - red);
+  rb = abs(red - blue);
 
   // Can view in serial plotter
   if (PLOT_COLORS)
