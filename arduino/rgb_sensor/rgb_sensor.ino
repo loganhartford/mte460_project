@@ -22,6 +22,7 @@
 #define YELLOW_POS 180
 
 #define ETHERNET_SHEILD false
+#define PLOT_COLORS true
 
 Servo servo;
 
@@ -44,15 +45,18 @@ MqttClient mqttClient(client);
 unsigned int red;
 unsigned int green;
 unsigned int blue;
+int gr;
 
 bool motorOn = false;
 bool blockPresent = false;
 
+void printState();
 void turnMotorOn(bool on);
 unsigned int readColor(int s2, int s3);
 void getColors(float alpha);
 void setRGBLED(String color);
-void interpretColors();
+bool noBlockPresent();
+void colorServoTest();
 
 void setup() {
   pinMode(S0, OUTPUT);
@@ -127,17 +131,17 @@ void setup() {
 }
 
 void loop() {
+  // colorServoTest();
+  
   if (ETHERNET_SHEILD)
   {
     mqttClient.poll();
   }
   // Read color sensor
   getColors(0.2);
-
-  int gr = abs(green - red);
   
   // Nothing there
-  if ((green > blue) && (blue > red) && (gr < 400))
+  if (noBlockPresent())
   {
     blockPresent = false;
     if (!motorOn)
@@ -161,11 +165,11 @@ void loop() {
     // Take an average
     for (int i = 0; i < 10; i++)
     {
-      getColors(0.01); // Slower alpha
+      getColors(0.2);
     }
 
     // check for false positive
-    if ((green > blue) && (blue > red) && (gr < 400))
+    if (noBlockPresent())
     {
       blockPresent = false;
     }
@@ -189,6 +193,11 @@ void loop() {
       setRGBLED("blue");
       servo.write(BLUE_POS);
     }
+    else
+    {
+      setRGBLED("off");
+      blockPresent = false;
+    }
 
     // This delay is just so we can see what color the led goes to
     // can delete this later
@@ -198,16 +207,65 @@ void loop() {
     turnMotorOn(true);
 
     // Let block clear the color sensor
+    setRGBLED("yellow");
     while (blockPresent)
     {
       getColors(0.1);
-      if ((green > blue) && (blue > red) && (gr < 400))
+      if (noBlockPresent())
       {
         blockPresent = false;
       }
     }
+    setRGBLED("white");
   }
   delay(10);
+}
+
+// FUNCTIONS //
+
+void colorServoTest()
+{
+  while (1)
+  {
+    getColors(0.2);
+    if (noBlockPresent())
+    {
+      blockPresent = false;
+    }
+    else if ((blue > green) && (green > red))
+    {
+      setRGBLED("yellow");
+      servo.write(YELLOW_POS);
+    }
+    else if ((green < red) && (green < blue))
+    {
+      setRGBLED("green");
+      servo.write(GREEN_POS);
+    }
+    else if ((red < green) && (red < blue))
+    {
+      setRGBLED("red");
+      servo.write(RED_POS);
+    }
+    else if ((blue < green) && (blue < red))
+    {
+      setRGBLED("blue");
+      servo.write(BLUE_POS);
+    }
+  }
+}
+
+bool noBlockPresent()
+{
+  return (green > blue) && (green > red) && (gr < 400);
+}
+
+void printState()
+{
+  Serial.print("MotorOn: ");
+  Serial.print(motorOn);
+  Serial.print(" blockPresent: ");
+  Serial.println(blockPresent);
 }
 
 void turnMotorOn(bool on)
@@ -267,13 +325,18 @@ void getColors(float alpha) {
   blue = (int)filteredBlue;
   green = (int)filteredGreen;
 
+  gr = abs(green - red);
+
   // Can view in serial plotter
-  Serial.print("Blue:");
-  Serial.println(blue);
-  Serial.print("Red:");
-  Serial.println(red);
-  Serial.print("Green:");
-  Serial.println(green);
+  if (PLOT_COLORS)
+  {
+    Serial.print("Blue:");
+    Serial.println(blue);
+    Serial.print("Red:");
+    Serial.println(red);
+    Serial.print("Green:");
+    Serial.println(green);
+  }
 }
 
 void setRGBLED(String color) {
@@ -317,10 +380,4 @@ void setRGBLED(String color) {
   }
 
 
-}
-
-// Will probably have to change this based on how it runs in the lab
-void interpretColors() 
-{
- 
 }
