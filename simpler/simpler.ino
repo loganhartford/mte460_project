@@ -42,27 +42,30 @@ const char topic[]  = "motor";
 EthernetClient client;
 MqttClient mqttClient(client);
 
+// Color Sensor
 unsigned int red;
 unsigned int green;
 unsigned int blue;
 int gr;
 int rb;
 
-bool motorOn = false;
-bool blockPresent = false;
-
-
+// Main loop
+String color = "";
 int sameCount = 0;
 bool sameBlock = false;
-String color = "";
-int thresh = 5;
+
+// Statistic data
 int redCount = 0;
 int greenCount = 0;
 int blueCount = 0;
 int yellowCount = 0;
 int servoPos = 0;
 
-void printState();
+// Speed parameters
+float a = 0.4             // alpha
+int sensorDelay = 10;     // ms delay between switching diodes
+int sameCountThresh = 3;  // number of consecutive same reads to justify color
+
 void turnMotorOn(bool on);
 unsigned int readColor(int s2, int s3);
 void getColors(float alpha);
@@ -150,8 +153,11 @@ void loop() {
   {
     mqttClient.poll();
   }
+  // Turn motor on
+  turnMotorOn(true);
+
   // Read color sensor
-  getColors(0.2);
+  getColors(0.4);
   
   // Yellow
   if ((blue > green) && (green > red))
@@ -202,7 +208,7 @@ void countSameColor(String colorIn)
       sameBlock = false;
       sameCount = 0;
     }
-    else if ((sameCount > thresh) )
+    else if ((sameCount > sameCountThresh) )
     {
       {
         if (colorIn == "red")
@@ -258,7 +264,6 @@ void colorServoTest()
     getColors(0.1);
     if (noBlockPresent())
     {
-      blockPresent = false;
     }
     else if ((blue > green) && (green > red))
     {
@@ -292,27 +297,9 @@ bool noBlockPresent()
   return (green > blue) && (green > red) && (gr < 400);
 }
 
-void printState()
-{
-  Serial.print("MotorOn: ");
-  Serial.print(motorOn);
-  Serial.print(" blockPresent: ");
-  Serial.println(blockPresent);
-}
-
 void turnMotorOn(bool on)
 {
-  motorOn = on;
   // Send signal to PLC
-  if (motorOn)
-  {
-    setRGBLED("white");
-  }
-  else
-  {
-    setRGBLED("purple");
-  }
-
   if (ETHERNET_SHEILD)
   {
     mqttClient.beginMessage(topic);
@@ -341,11 +328,11 @@ float filteredBlue = 0;
 
 void getColors(float alpha) {
   int newRed = readColor(LOW, LOW);
-  delay(20);
+  delay(10);
   int newBlue = readColor(LOW, HIGH);
-  delay(20);
+  delay(10);
   int newGreen = readColor(HIGH, HIGH);
-  delay(20);
+  delay(10);
 
   // Apply low-pass filter
   filteredRed = alpha * newRed + (1 - alpha) * filteredRed;
@@ -411,6 +398,4 @@ void setRGBLED(String color) {
     analogWrite(LED_g, 0);
     analogWrite(LED_b, 0);
   }
-
-
 }
