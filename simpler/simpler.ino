@@ -9,19 +9,19 @@
 #define OUT_PIN 4
 #define LED_PIN 8
 
-#define LED_r 9
-#define LED_g 10
-#define LED_b 11
+#define LED_r A0
+#define LED_g A1
+#define LED_b A2
 
 #define LED_ON 1
 
 #define SERVO 6
-#define RED_POS 0
-#define BLUE_POS 60
-#define GREEN_POS 120
-#define YELLOW_POS 180
+#define RED_POS 20
+#define BLUE_POS 45
+#define GREEN_POS 130
+#define YELLOW_POS 100
 
-#define ETHERNET_SHEILD false
+#define ETHERNET_SHEILD true
 #define PLOT_COLORS false
 
 Servo servo;
@@ -62,9 +62,9 @@ int yellowCount = 0;
 int servoPos = 0;
 
 // Speed parameters
-float a = 0.4             // alpha
-int sensorDelay = 10;     // ms delay between switching diodes
-int sameCountThresh = 3;  // number of consecutive same reads to justify color
+float a = 0.4;             // alpha
+int sensorDelay = 13;     // ms delay between switching diodes
+int sameCountThresh = 10;  // number of consecutive same reads to justify color
 
 void turnMotorOn(bool on);
 unsigned int readColor(int s2, int s3);
@@ -103,7 +103,7 @@ void setup() {
   setRGBLED("off");
 
   // Set servo to default postition
-  servo.write(0);
+  servo.write(75);
 
   if (ETHERNET_SHEILD)
   {
@@ -144,6 +144,9 @@ void setup() {
     Serial.println("You're connected to the MQTT broker!");
     Serial.println();
   }
+
+  // Turn motor on
+  turnMotorOn(true);
 }
 
 void loop() {
@@ -151,10 +154,10 @@ void loop() {
   
   if (ETHERNET_SHEILD)
   {
-    mqttClient.poll();
+    //mqttClient.poll();
   }
-  // Turn motor on
-  turnMotorOn(true);
+  
+  
 
   // Read color sensor
   getColors(0.4);
@@ -188,6 +191,15 @@ void loop() {
     // setRGBLED("off");
   }
 
+  
+}
+
+
+
+// FUNCTIONS //
+
+void printStatistics()
+{
   Serial.print("Red: ");
   Serial.print(redCount);
   Serial.print(" Green :");
@@ -197,8 +209,6 @@ void loop() {
   Serial.print(" Yellow: ");
   Serial.println(yellowCount);
 }
-
-// FUNCTIONS //
 
 void countSameColor(String colorIn)
 {
@@ -216,6 +226,7 @@ void countSameColor(String colorIn)
           if (!sameBlock)
           {
             redCount++;
+            printStatistics();
             sameBlock = true;
           }
           servoPos = RED_POS;
@@ -225,6 +236,7 @@ void countSameColor(String colorIn)
           if (!sameBlock)
           {
             greenCount++;
+            printStatistics();
             sameBlock = true;
           }
           servoPos = GREEN_POS;
@@ -234,6 +246,7 @@ void countSameColor(String colorIn)
           if (!sameBlock)
           {
             blueCount++;
+            printStatistics();
             sameBlock = true;
           }
           servoPos = BLUE_POS;
@@ -243,6 +256,7 @@ void countSameColor(String colorIn)
           if (!sameBlock)
           {
             yellowCount++;
+            printStatistics();
             sameBlock = true;
           }
           servoPos = YELLOW_POS;
